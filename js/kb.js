@@ -7,8 +7,10 @@
   else (root.OP = root.OP || {}).kb = factory(root.OP.text, root.OP.guard, root.OP.handbook);
 })(typeof self !== 'undefined' ? self : this, function (T, G, H) {
   'use strict';
-  const EXTRA_STOP = new Set(['many', 'much', 'get', 'got', 'know', 'tell', 'need', 'want', 'like', 'please', 'lumenfield', 'policy', 'company', 'new', 'hire', 'thank', 'thanks', 'hi', 'hello', 'okay', 'ok', 'question', 'mean', 'happen', 'work', 'way']);
-  function qTokens(q) { return Array.from(new Set(T.tokens(q).filter((t) => !EXTRA_STOP.has(t)))); }
+  const EXTRA_STOP = new Set(['many', 'much', 'get', 'got', 'know', 'tell', 'need', 'want', 'like', 'please', 'lumenfield', 'policy', 'company', 'new', 'hire', 'thank', 'thanks', 'hi', 'hello', 'okay', 'ok', 'question', 'mean', 'happen', 'work', 'way', 'my', 'me', 'mine', 'myself', 'long', 'set', 'use', 'make', 'go', 'see', 'able', 'find', 'there', 'anyone', 'someone', 'thing', 'stuff', 'really', 'exactly', 'spend', 'allowed', 'supposed']);
+  function qTokens(q) { return Array.from(new Set(T.tokens(q).filter((t) => !EXTRA_STOP.has(t) && !EXTRA_STOP.has(t + 's')))); }
+  /* Query text for BM25 with the extra stop words removed (BM25 tokenises and stems it once). */
+  function qText(q) { return String(q || '').split(/\s+/).filter((w) => { const t = T.tokens(w); return t.length && !t.every((x) => EXTRA_STOP.has(x)); }).join(' '); }
   function slug(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'section'; }
 
   /* Markdown-ish doc -> sections. "## Heading" starts a section; text before the first one becomes "Overview". */
@@ -29,9 +31,13 @@
   }
   function build(docs) {
     const sections = []; for (const d of docs) for (const s of sectionsOf(d)) sections.push(s);
+    // Document frequencies over the clean text (flagged sentences excluded). Words the handbook never uses count
+    // like its rarest words, so an unknown word can't outweigh a specific match but can sink a generic one.
+    const df = new Map(); for (const s of sections) for (const t of new Set(T.tokens(s.docTitle + ' ' + s.title + ' ' + cleanSentences(s).join(' ')))) df.set(t, (df.get(t) || 0) + 1);
+    const idf = (t) => Math.log(1 + (sections.length + 1) / (Math.max(1, df.get(t) || 0) + 0.5));
     const index = T.bm25(sections.map((s) => ({ id: s.id, text: s.docTitle + ' ' + s.title + ' ' + s.title + '\n' + s.text, sec: s })));
     const byId = Object.fromEntries(sections.map((s) => [s.id, s]));
-    return { sections, index, byId, docs, flaggedCount: sections.reduce((a, s) => a + s.flagged.length, 0) };
+    return { sections, index, byId, docs, idf, flaggedCount: sections.reduce((a, s) => a + s.flagged.length, 0) };
   }
   function cleanSentences(sec) {
     const bad = new Set(sec.flagged.map((f) => f.sentence));
@@ -76,7 +82,7 @@
   }
 
   /* ---------- demo answer ---------- */
-  const MIN_SCORE = 1.6;
+  const MIN_SCORE = 0.5; const MIN_COVER = 0.5;
   function answer(kb, question, opts) {
     const o = opts || {}; const q = String(question || '').trim();
     const sens = sensitiveCheck(q);
@@ -90,7 +96,7 @@
     }
     const qt = qTokens(q);
     if (!qt.length) return abstain(q, o.hire, 'Ask a question about benefits, time off, expenses, security, tools, teams or terms.');
-    const hits = kb.index.search(qt.join(' '), { limit: 8 });
+    const hits = kb.index.search(qText(q), { limit: 8 });
     const ignored = [];
     const usable = [];
     for (const h of hits) {
@@ -98,15 +104,19 @@
       if (sec.flagged.length) ignored.push({ id: sec.id, title: sec.docTitle + ' \u203a ' + sec.title, count: sec.flagged.length });
       if (!sents.length) continue;
       const toks = new Set(T.tokens(sec.docTitle + ' ' + sec.title + ' ' + sents.join(' ')));
-      const cover = qt.filter((t) => toks.has(t)).length / qt.length;
+      const total = qt.reduce((a, t) => a + kb.idf(t), 0);
+      const cover = qt.filter((t) => toks.has(t)).reduce((a, t) => a + kb.idf(t), 0) / (total || 1);
       usable.push({ sec, sents, score: h.score, cover });
     }
-    const need = qt.length >= 3 ? 0.6 : 0.5;
-    const ok = usable.filter((u) => u.score >= MIN_SCORE && u.cover >= need);
+    const need = MIN_COVER;
+    const ok = usable.filter((u) => u.score >= MIN_SCORE && u.cover > need);
     const top = ok[0];
     const best = hits.length ? hits[0].score : 0;
     const shown = ignored.filter((g) => { const h = hits.find((x) => x.doc.id === g.id); return h && h.score >= best * 0.5; });
-    if (!top) return abstain(q, o.hire, null, shown);
+    if (!top) {
+      const near = usable.filter((u) => u.score >= MIN_SCORE && u.cover >= 0.3).sort((a, b) => b.cover - a.cover || b.score - a.score)[0];
+      const a = abstain(q, o.hire, null, shown); if (near) a.related = near.sec.id; return a;
+    }
     const picked = [top];
     const second = ok[1];
     if (second && second.score >= top.score * 0.75 && second.cover >= top.cover) picked.push(second);
@@ -127,7 +137,7 @@
   }
 
   /* ---------- live mode ---------- */
-  function retrieve(kb, question, k) { return kb.index.search(qTokens(question).join(' ') || question, { limit: k || 6 }).map((h) => h.doc.sec); }
+  function retrieve(kb, question, k) { return kb.index.search(qText(question) || question, { limit: k || 6 }).map((h) => h.doc.sec); }
   function buildPrompt(kb, question, hire, history) {
     const secs = retrieve(kb, question, 6);
     const sys = 'You are the onboarding assistant for ' + H.COMPANY.name + '. Answer the new hire\u2019s question using ONLY the handbook sections provided inside <untrusted_source> tags. ' +
@@ -166,5 +176,5 @@
     const text = j.answer.replace(/\[([a-z0-9-]+#[a-z0-9-]+)\]/g, (m, id) => (num[id] ? '[' + num[id] + ']' : ''));
     return { type: 'answer', text: /\[\d+\]/.test(text) ? text : text + ' [1]', citations: cites, ignored: [], dropped, route: null };
   }
-  return { qTokens, slug, sectionsOf, build, cleanSentences, redactPII, sensitiveCheck, routeFor, handoffDraft, answer, abstain, retrieve, buildPrompt, parseModelAnswer, ROUTES, MIN_SCORE };
+  return { qTokens, qText, slug, sectionsOf, build, cleanSentences, redactPII, sensitiveCheck, routeFor, handoffDraft, answer, abstain, retrieve, buildPrompt, parseModelAnswer, ROUTES, MIN_SCORE, MIN_COVER };
 });

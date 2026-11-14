@@ -1,0 +1,8 @@
+{
+  "name": "onboardpilot-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An onboarding agent in the browser: personalized 30/60/90 day plans, handbook answers with citations, approval-gated access requests, quizzes and drafted intros.",
+  "license": "MIT",
+  "scripts": { "test": "node --test test/*.test.js" }
+}

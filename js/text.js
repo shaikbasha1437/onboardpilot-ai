@@ -28,7 +28,9 @@
     push(st, s.length);
     return out;
   }
-  function stem(w) { if (w.length > 5 && /ies$/.test(w)) return w.slice(0, -3) + 'y'; if (w.length > 4 && /(sh|ch|x|ss|z)es$/.test(w)) return w.slice(0, -2); if (w.length > 4 && /(ss)$/.test(w)) return w; if (w.length > 3 && /s$/.test(w) && !/us$/.test(w)) return w.slice(0, -1); return w; }
+  function plural(w) { if (w.length > 5 && /ies$/.test(w)) return w.slice(0, -3) + 'y'; if (w.length > 4 && /(sh|ch|x|ss|z)es$/.test(w)) return w.slice(0, -2); if (w.length > 4 && /(ss)$/.test(w)) return w; if (w.length > 3 && /s$/.test(w) && !/us$/.test(w)) return w.slice(0, -1); return w; }
+  /* Light suffix folding so "reimbursement", "reimburse" and "reimbursed" meet; applied to queries and docs alike. */
+  function stem(w) { let x = plural(w); if (/\d/.test(x)) return x; if (x.length > 7 && /ment$/.test(x)) x = x.slice(0, -4); else if (x.length > 5 && /ing$/.test(x)) x = x.slice(0, -3); else if (x.length > 5 && /ed$/.test(x)) x = x.slice(0, -2); if (x.length > 4 && /e$/.test(x)) x = x.slice(0, -1); if (x.length > 4 && /(.)\1$/.test(x) && !/(ss|ll)$/.test(x)) x = x.slice(0, -1); return x; }
   function tokens(s) { return (norm(s).match(/[a-z][a-z0-9'-]*|\d+(?:\.\d+)?/g) || []).map((w) => w.replace(/'s$/, '').replace(/^-+|-+$/g, '')).filter((w) => w && !STOP.has(w) && w.length > 1).map(stem); }
   /* Numbers with units, for claim-vs-quote checks and conflict detection. Years (1900-2099 with no unit) are kept separately. */
   function numbers(s) {
@@ -68,5 +70,5 @@
   }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function hash(s) { let h = 2166136261; const t = String(s); for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
-  return { STOP, norm, sentences, tokens, numbers, wordCount, estTokens, bm25, esc, hash };
+  return { STOP, stem, norm, sentences, tokens, numbers, wordCount, estTokens, bm25, esc, hash };
 });

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OnboardPilot AI: an onboarding agent with plans, cited answers and approval-gated access</title>
+  <meta name="description" content="Personalized 30/60/90 day onboarding plans, handbook answers with citations that abstain when unsure, access requests that wait for manager approval, quizzes and drafted intros. Runs in your browser; demo mode needs no key.">
+  <meta name="theme-color" content="#0f2a3d">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <script>try { var t = localStorage.getItem('op.theme'); if (t ? JSON.parse(t) === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark'); } catch (e) {}</script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="top">
+    <a class="brand" href="./"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M9 20l5-11 3 7 2-3 4 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>OnboardPilot <b>AI</b></a>
+    <nav aria-label="App">
+      <button type="button" id="nav-help">How it works</button>
+      <button type="button" id="nav-export">Export</button>
+      <button type="button" id="nav-settings">Settings</button>
+      <button type="button" id="nav-theme" aria-label="Toggle dark theme" title="Toggle dark theme">◐</button>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="hero">
+      <p class="eyebrow">THE ONBOARDING AGENT</p>
+      <h1>Day one to day 90, <em>planned</em> and answered.</h1>
+      <p class="lede">A personalized plan for every new hire, a handbook assistant that cites its sources and hands off to a person when it isn't sure, and access requests that wait for a manager's approval. Demo data is a fictional company on <code>.example</code> addresses; nothing is ever sent.</p>
+      <div class="status-row"><span class="pill" id="mode-pill">Demo mode · no key</span><span class="pill">Fictional company: Lumenfield Labs</span><span class="pill ok">Drafts only, nothing is sent</span><span class="pill" id="store-pill">Saved in this browser</span></div>
+    </section>
+    <section class="panel ctx" aria-label="New hire and viewer">
+      <div class="ctx-row">
+        <div class="field"><label for="hire-select">New hire</label><select id="hire-select"></select></div>
+        <div class="field"><label for="viewer">Viewing as</label><select id="viewer"><option value="hire">New hire</option><option value="manager">Manager</option><option value="admin">HR admin (Hana Sato)</option></select></div>
+        <div class="ctx-actions"><button type="button" id="add-hire" class="primary">+ New hire</button><button type="button" id="edit-hire">Edit profile</button><button type="button" id="delete-hire" class="danger">Remove</button></div>
+      </div>
+      <div id="hire-summary" class="hire-summary"></div>
+    </section>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
+      <button type="button" role="tab" data-tab="plan">Plan</button>
+      <button type="button" role="tab" data-tab="ask">Ask</button>
+      <button type="button" role="tab" data-tab="access">Access</button>
+      <button type="button" role="tab" data-tab="learn">Learn</button>
+      <button type="button" role="tab" data-tab="people">People</button>
+      <button type="button" role="tab" data-tab="team">Team dashboard</button>
+      <button type="button" role="tab" data-tab="handbook">Handbook</button>
+      <button type="button" role="tab" data-tab="templates">Templates</button>
+    </nav>
+    <section id="panel" class="tabpanel" role="tabpanel" aria-live="polite"></section>
+    <footer class="foot small muted">OnboardPilot AI is open source (MIT). Account provisioning, messages and invites are simulated or drafted; nothing leaves your browser except, in live mode, your question and the matching handbook sections to the AI provider you pick. <a href="https://github.com/shaikbasha1437/onboardpilot-ai">Source on GitHub</a>.</footer>
+  </main>
+  <div id="modal-host"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="js/text.js"></script>
+  <script src="js/guard.js"></script>
+  <script src="js/handbook.js"></script>
+  <script src="js/kb.js"></script>
+  <script src="js/plan.js"></script>
+  <script src="js/access.js"></script>
+  <script src="js/quiz.js"></script>
+  <script src="js/people.js"></script>
+  <script src="js/docs.js"></script>
+  <script src="js/exporter.js"></script>
+  <script src="js/seed.js"></script>
+  <script src="js/llm.js"></script>
+  <script src="js/webllm.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+  <script>if ('serviceWorker' in navigator && location.protocol !== 'file:') addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+</body>
+</html>

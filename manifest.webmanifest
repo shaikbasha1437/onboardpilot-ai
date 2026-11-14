@@ -1,0 +1,15 @@
+{
+  "name": "OnboardPilot AI",
+  "short_name": "OnboardPilot",
+  "description": "An onboarding agent: personalized plans, cited handbook answers, approval-gated access, quizzes and drafted intros.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f6f8",
+  "theme_color": "#0f2a3d",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
