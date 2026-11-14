@@ -13,6 +13,10 @@
   function txtToMd(text, title) {
     const lines = String(text || '').replace(/\r\n?/g, '\n').replace(/\t/g, ' ').split('\n');
     if (lines.some((l) => /^#{1,3}\s+\S/.test(l))) return (/^#\s/.test(lines.find((l) => l.trim()) || '') ? '' : '# ' + title + '\n\n') + lines.join('\n');
+    // A short title-like first line followed by another heading-like line is the document's own title.
+    const titleLike = (l) => l && l.length <= 60 && !/[.,;:!?]$/.test(l) && /^[A-Z0-9]/.test(l) && l.split(/\s+/).length <= 8;
+    const nonEmpty = lines.map((l, i) => [l.trim(), i]).filter(([l]) => l);
+    if (nonEmpty.length > 2 && titleLike(nonEmpty[0][0]) && titleLike(nonEmpty[1][0])) { title = nonEmpty[0][0]; lines.splice(nonEmpty[0][1], 1); }
     const out = ['# ' + title, '']; let headings = 0;
     for (let i = 0; i < lines.length; i++) {
       const l = lines[i].trim(); const next = (lines.slice(i + 1).find((x) => x.trim()) || '').trim();

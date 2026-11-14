@@ -31,6 +31,8 @@ test('plain text gets headings from title-like lines', () => {
   const md = D.txtToMd('Remote Work\n\nEquipment\nRemote staff get a $800 budget.\n\nInternet allowance\nWe pay up to $50 per month for internet.', 'Policy');
   const secs = KB.sectionsOf({ id: 'p', title: 'Policy', text: md }).map((s) => s.title);
   assert.ok(secs.includes('Equipment') && secs.includes('Internet allowance'), secs.join('|'));
+  assert.match(md, /^# Remote Work\n/);
+  assert.match(D.txtToMd('Security Handbook\nBadges\nWear your badge.\n', 'file name'), /^# Security Handbook\n[\s\S]*## Badges/);
   const flat = D.txtToMd('one paragraph only, with no headings at all.\n\nAnother paragraph here.', 'Notes');
   assert.match(flat, /## Part 1: one paragraph only/);
 });
